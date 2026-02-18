@@ -1,65 +1,119 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { useProject } from './context/ProjectContext';
+import { useAuth } from './context/AuthContext';
+import Header from './components/Header';
+import BottomDock from './components/BottomDock';
+import LoginScreen from './components/LoginScreen';
+import TaskModal from './components/TaskModal';
+import ProjectManager from './components/ProjectManager';
+import SettingsPanel from './components/SettingsPanel';
+import UserManager from './components/UserManager';
+import Dashboard from './components/views/Dashboard';
+import TaskTracker from './components/views/TaskTracker';
+import EisenhowerMatrix from './components/views/EisenhowerMatrix';
+import KanbanBoard from './components/views/KanbanBoard';
+import GanttChart from './components/views/GanttChart';
+import WeeklySchedule from './components/views/WeeklySchedule';
+import MonthlyCalendar from './components/views/MonthlyCalendar';
+import ExpensesView from './components/views/ExpensesView';
+import ReportsView from './components/views/ReportsView';
+import { Task } from './context/ProjectContext';
+
+type Tab = 'dashboard' | 'tasks' | 'matrix' | 'kanban' | 'gantt' | 'weekly' | 'calendar' | 'expenses' | 'reports';
 
 export default function Home() {
+  const { settings } = useProject();
+  const { currentUser, initialized } = useAuth();
+  const [activeTab, setActiveTab] = useState<Tab>(settings.defaultView as Tab);
+
+  // Panels
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [usersOpen, setUsersOpen] = useState(false);
+
+  // Wait for auth to load from localStorage — show a blank slate to avoid
+  // hydration mismatch and the "Router action before initialization" error.
+  if (!initialized) {
+    return <div className="min-h-screen bg-slate-50 animate-pulse" />;
+  }
+
+  // Auth loaded: show login or the main app
+  if (!currentUser) {
+    return <LoginScreen appName={settings.appName} />;
+  }
+
+
+  const openNewTask = () => {
+    setEditingTask(null);
+    setTaskModalOpen(true);
+  };
+
+  const openEditTask = (task: Task) => {
+    setEditingTask(task);
+    setTaskModalOpen(true);
+  };
+
+  const closeTaskModal = () => {
+    setTaskModalOpen(false);
+    setEditingTask(null);
+  };
+
+  const renderView = () => {
+    switch (activeTab) {
+      case 'dashboard': return <Dashboard key="dashboard" />;
+      case 'tasks': return <TaskTracker key="tasks" onEditTask={openEditTask} onNewTask={openNewTask} />;
+      case 'matrix': return <EisenhowerMatrix key="matrix" />;
+      case 'kanban': return <KanbanBoard key="kanban" onEditTask={openEditTask} />;
+      case 'gantt': return <GanttChart key="gantt" />;
+      case 'weekly': return <WeeklySchedule key="weekly" />;
+      case 'calendar': return <MonthlyCalendar key="calendar" />;
+      case 'expenses': return <ExpensesView key="expenses" />;
+      case 'reports': return <ReportsView key="reports" />;
+      default: return null;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <Header
+        activeTab={activeTab}
+        onNewTask={openNewTask}
+        onOpenProjects={() => setProjectsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenUsers={() => setUsersOpen(true)}
+      />
+
+      <main className="max-w-[1400px] mx-auto px-6 py-8 pb-32">
+        <AnimatePresence mode="wait">
+          {renderView()}
+        </AnimatePresence>
       </main>
+
+      <BottomDock activeTab={activeTab} setActiveTab={setActiveTab} />
+
+      {/* Global Panels */}
+      <TaskModal
+        open={taskModalOpen}
+        task={editingTask}
+        onClose={closeTaskModal}
+      />
+      <ProjectManager
+        open={projectsOpen}
+        onClose={() => setProjectsOpen(false)}
+      />
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
+      <UserManager
+        open={usersOpen}
+        onClose={() => setUsersOpen(false)}
+      />
     </div>
   );
 }
